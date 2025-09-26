@@ -68,7 +68,13 @@ sequenceDiagram
     Generator-->>GameStart: dungeonReady()
 
     Note over GameStart,Player: 9) Jogo começa — loop de atualização (player + bugs)
-    GameStart->>Player: update(dt)
-    GameStart->>BugA: update(dt)
-    GameStart->>BugB: update(dt)
-    GameStart->>BugC: update(dt)
+    Note over GameStart,Player,BugA: BaseGame.update(dt) — paralelismo obrigatório (compute/apply)
+    GameStart->>BaseGame: update(dt)
+    Note over BaseGame: 9.1) separar objetos que suportam compute_next_state
+    BaseGame->>ThreadPool: submit compute_next_state(obj, dt) for parallel objects
+    ThreadPool-->>BaseGame: state dicts (as completed)
+    BaseGame->>Player: apply_state(state)
+    BaseGame->>BugA: apply_state(state)
+    BaseGame->>BugB: apply_state(state)
+    BaseGame->>BugC: apply_state(state)
+    Note over BaseGame: 9.2) executar update(dt) seriais

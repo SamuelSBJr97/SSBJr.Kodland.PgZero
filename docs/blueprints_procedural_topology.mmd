@@ -46,3 +46,6 @@ flowchart LR
         C[Bug B spawn em R3]
         D[Bug C spawn em R4]
     end
+
+    %% Nota: Movimento e decisões usam compute_next_state/apply_state
+    Note over R1C,R5C: Movimento paralelo: BaseGame.update executa compute_next_state em ThreadPool e aplica os resultados na main thread
