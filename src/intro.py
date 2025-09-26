@@ -1,15 +1,11 @@
 import math
 import random
 
-def reset(seed: int = 42):
+def reset():
     global objects
     global player
     global board
-    global path
     global bugs
-
-    player = Actor("player", anchor=('center', 'center'), pos=(400, 300))
-    img_player = 'player'
 
     board = []
     # algoritmo para gerar chão que o player e bugs podem andar
@@ -21,53 +17,72 @@ def reset(seed: int = 42):
                 floor.y = y * 50 + 25 + 50
                 board.append(floor)
 
-    path = []
-    bugs = []
-    #for _ in range(5):
-    #    bug = Actor("bug", (random.randint(0, 800), random.randint(0, 600)))
-    #    bugs.append(bug)
+    _boardsSelecteds = []
 
-    objects = [*bugs, *board, *path]
+    bugs = []
+    for _ in range(5):
+        bug = Actor('bug-1', anchor=('center', 'center'))
+        bug.images = ['bug-1', 'bug-2', 'bug-3', 'bug-4']
+        bug.angle = 0
+
+        while True:
+            _board = random.choice(board)
+            if _board in _boardsSelecteds:
+                continue
+
+            _boardsSelecteds.append(_board)
+            bug.x = _board.x
+            bug.y = _board.y
+            bugs.append(bug)
+
+            break
+
+    player = Actor("player-1", anchor=('center', 'center'))
+    player.images = ['player-1', 'player-2', 'player-3', 'player-4']
+    player.angle = 0
+
+    # garante que o player não comece em cima de um bug
+    while True:
+        _board = random.choice(board)
+    
+        if _board in _boardsSelecteds:
+            continue
+
+        player.x = _board.x
+        player.y = _board.y
+
+        break
+
+    objects = [*board, *bugs, player]
 
 reset()
 
 def update(dt):
-    original_x = player.x
-    original_y = player.y
-
-    img_player = player.image
     angle = player.angle
 
     if keyboard.right:
-        player.x += 1
-        img_player = 'player'
-        angle = 0
-
-    if keyboard.left:
-        player.x -= 1
-        img_player = 'player-left'
-        angle = 180
-
-    if keyboard.up:
-        player.y -= 1
-        angle = 90
-
-    if keyboard.down:
-        player.y += 1
         angle = 270
 
-    player.image = img_player
+    if keyboard.left:
+        angle = 90
+
+    if keyboard.up:
+        angle = 0
+
+    if keyboard.down:
+        angle = 180
+
+    player.image = player.images[random.randint(0, len(player.images) - 1)]
     player.angle = angle
+
+    for bug in bugs:
+        bug.image = bug.images[random.randint(0, len(bug.images) - 1)]
 
     if keyboard.space:
         pass
 
     if keyboard.ESCAPE:
         reset()
-
-    if player.x < 0 or player.x > 800 or player.y < 0 or player.y > 600:
-        player.x = original_x
-        player.y = original_y
 
 def draw():
     screen.clear()
