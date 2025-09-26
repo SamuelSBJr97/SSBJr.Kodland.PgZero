@@ -1,7 +1,7 @@
 import math
 import random
 
-def reset():
+def reset(seed: int = 42):
     global objects
     global player
     global board
@@ -12,13 +12,22 @@ def reset():
     img_player = 'player'
 
     board = []
+    # algoritmo para gerar chão que o player e bugs podem andar
+    for x in range(16):
+        for y in range(10):
+            if random.random() < 0.8:
+                floor = Actor('floor')
+                floor.x = x * 50 + 25
+                floor.y = y * 50 + 25 + 50
+                board.append(floor)
+
     path = []
     bugs = []
     #for _ in range(5):
     #    bug = Actor("bug", (random.randint(0, 800), random.randint(0, 600)))
     #    bugs.append(bug)
 
-    objects = [*bugs, *board, *path, player]
+    objects = [*bugs, *board, *path]
 
 reset()
 
