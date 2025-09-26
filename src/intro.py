@@ -1,7 +1,6 @@
+import pgzrun
 import math
 import random
-import pgzero
-from pgzero.actor import Actor
 
 def reset():
     global objects
@@ -196,6 +195,6 @@ def draw():
         actor_anime(obj)
         obj.draw()
 
-if __name__ == "__main__":
-    import pgzrun
-    pgzrun.go()
+    screen.draw.text(f'Bugs restantes: {len(bugs)}', (10, 10), color='white')
+
+pgzrun.go()
