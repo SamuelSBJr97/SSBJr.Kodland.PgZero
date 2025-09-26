@@ -6,7 +6,6 @@ fáceis de integrar com a API do pgzero (update/draw).
 from typing import Optional
 from .scene import SceneManager, Scene
 
-
 class Game:
     """Classe que controla o jogo principal.
 

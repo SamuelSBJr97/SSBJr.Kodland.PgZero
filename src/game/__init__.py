@@ -19,6 +19,7 @@ from .entities import (
 	UIQuestionario,
 	UIHud,
 )
+from .project import SalasEQuestoes
 
 __all__ = [
 	"GameObject",
@@ -36,4 +37,5 @@ __all__ = [
 	"UILivro",
 	"UIQuestionario",
 	"UIHud",
+	"SalasEQuestoes",
 ]

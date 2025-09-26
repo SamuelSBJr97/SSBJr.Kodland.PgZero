@@ -1,0 +1,22 @@
+flowchart TD
+  %% Evento de início
+  BeginPlay([Event BeginPlay]) --> InitGame["InitGame()\n- carregar assets\n- criar Project (Depurador)\n- criar Game"]
+  InitGame --> SpawnMap["GenerateInitialMap()\n- gerar 5 componentes\n- conectar com até 3 nós"]
+  SpawnMap --> PlayerSpawn["SpawnPlayer()\n- posição inicial na cidade"]
+  PlayerSpawn --> ReadyState([Game Ready])
+
+  subgraph MainLoop["Loop Principal (Event Tick / Input)"]
+    ReadyState --> OnInput["Event: Input (setas, espaço)"]
+    OnInput --> ProcessInput["ProcessInput()\n- mover, girar, atacar"]
+    ProcessInput --> UpdateGame["UpdateGame(dt)\n- scenes.update(dt)\n- AI.update(dt)"]
+    UpdateGame --> Render["Render / draw()\n- cena atual, HUD"]
+    Render --> CheckTransitions["CheckTransitions()\n- saiu da porta?\n- chegou em sala?\n- sala limpa?\n- limpar conjunto? "]
+    CheckTransitions -->|enter_room| EnterRoom["EnterRoom()\n- activate scene\n- spawn bugs"]
+    CheckTransitions -->|exit_to_map| Travel["TravelOnRoad()\n- escolher rota\n- mover jogador\n- play travel audio"]
+    CheckTransitions -->|all_cleared| GenerateMore["GenerateMoreComponents()\n- criar 4 novas\n- distribuir 3 bugs cada"]
+    GenerateMore --> ReadyState
+    Travel --> ReadyState
+    EnterRoom --> ReadyState
+  end
+
+  style MainLoop stroke:#333,stroke-width:1px

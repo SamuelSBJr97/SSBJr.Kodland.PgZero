@@ -7,6 +7,8 @@ do loop update/draw para facilitar testes / desenvolvimento sem dependências.
 from typing import Optional
 import time
 
+from game.project import Depurador
+
 from .game import Game
 
 
@@ -39,6 +41,8 @@ def run_with_pgz(game: Game) -> None:
     global game_instance  # type: Optional[Game]
     game_instance = game
 
+    Depurador().attach_to_game(game_instance)
+
     def _update(delta: float = 1.0 / 60.0):
         # pgzero chama update() sem argumentos; não há valor de dt fácil
         # então passamos uma constante aproximada.
@@ -61,5 +65,6 @@ def run_with_pgz(game: Game) -> None:
 if __name__ == "__main__":
     # Exemplo mínimo quando executado diretamente; roda headless.
     g = Game()
+    Depurador().attach_to_game(g)
     print("Executando headless de exemplo (5 passos)...")
     run_headless(g)

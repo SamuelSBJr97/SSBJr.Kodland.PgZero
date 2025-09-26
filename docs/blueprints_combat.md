@@ -1,0 +1,35 @@
+## Fluxo de combate e comportamento dos Bugs
+
+Diagrama descrevendo o fluxo de combate dentro de um componente (sala)
+e o comportamento dos bugs (espera, cercar, pular e dano).
+
+```mermaid
+flowchart TD
+  Start([Player leaves door area]) --> BugsWake["Bugs: Wake / Start AI"]
+  BugsWake --> EvaluateTactic["EvaluateTactic()\n- check distance\n- decide: approach / circle / jump"]
+  EvaluateTactic --> Approach["Move towards player (pathfind)\n- avoid obstacles"]
+  EvaluateTactic --> Circle["Circle around player\n- spread to left/right"]
+  Approach --> MaybeJump{"CanJump?\n(distance < threshold)"}
+  MaybeJump -->|yes| JumpAttack["Jump and attempt hit\n- if hits: player.hp -=1\n- respawn to random cell"]
+  MaybeJump -->|no| MeleeAttempt["Melee attempt (reach)\n- deal 1 dmg if in cell"]
+  JumpAttack --> EvaluateTactic
+  MeleeAttempt --> EvaluateTactic
+  EvaluateTactic --> MultipleAttack["Multiple bugs attack concurrently\n- damages stack"]
+  MultipleAttack --> PlayerHP["Player.hp <=0?\n- if yes: exit room / teleport"]
+  PlayerHP -->|yes| PlayerExit["Player exit: apply penalties\n- drop progress?" ]
+  PlayerHP -->|no| ContinueBattle["Continue battle until bugs dead"]
+  ContinueBattle --> CheckAllDead["Check all bugs dead in room"]
+  CheckAllDead -->|all dead| RoomCleared["Room cleared: mark map green\n- restore player HP"]
+  RoomCleared --> EndBattle
+  EndBattle --> ReadyState
+
+  style Start fill:#f9f,stroke:#333,stroke-width:1px
+  style RoomCleared fill:#dfd,stroke:#333,stroke-width:1px
+
+```
+
+Notas:
+- `JumpAttack` é um ataque telegráfico (pulo) que só acerta se o bug atingir
+  a célula onde o jogador está; depois de acertar, bug é reposicionado.
+- Bugs podem realizar ataques simultâneos; o dano soma (p.ex. 3 bugs = 3 dmg
+  se todos acertarem no mesmo frame).
