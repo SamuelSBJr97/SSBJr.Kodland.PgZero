@@ -1,11 +1,15 @@
 import math
 import random
+import pgzero
+from pgzero.actor import Actor
 
 def reset():
     global objects
     global player
     global board
+    global boardsSelecteds
     global bugs
+    global bullets
 
     board = []
     # algoritmo para gerar chão que o player e bugs podem andar
@@ -13,11 +17,12 @@ def reset():
         for y in range(10):
             if random.random() < 0.8:
                 floor = Actor('floor')
+                floor.images = ['floor']
                 floor.x = x * 50 + 25
                 floor.y = y * 50 + 25 + 50
                 board.append(floor)
 
-    _boardsSelecteds = []
+    boardsSelecteds = []
 
     bugs = []
     for _ in range(5):
@@ -27,15 +32,17 @@ def reset():
 
         while True:
             _board = random.choice(board)
-            if _board in _boardsSelecteds:
+            if _board in boardsSelecteds:
                 continue
 
-            _boardsSelecteds.append(_board)
+            boardsSelecteds.append(_board)
             bug.x = _board.x
             bug.y = _board.y
             bugs.append(bug)
 
             break
+
+    bullets = []
 
     player = Actor("player-1", anchor=('center', 'center'))
     player.images = ['player-1', 'player-2', 'player-3', 'player-4']
@@ -45,7 +52,7 @@ def reset():
     while True:
         _board = random.choice(board)
     
-        if _board in _boardsSelecteds:
+        if _board in boardsSelecteds:
             continue
 
         player.x = _board.x
@@ -53,39 +60,142 @@ def reset():
 
         break
 
+    # passa referencia dos objetos para facilitar o draw/update
     objects = [*board, *bugs, player]
 
 reset()
 
-def update(dt):
-    angle = player.angle
+def next_board(actor, forward=True, bullet=False):
+    x = actor.x
+    y = actor.y
 
-    if keyboard.right:
-        angle = 270
+    if forward:
+        if actor.angle == 0:   # cima
+            y -= 50
+        elif actor.angle == 90:  # esquerda
+            x -= 50
+        elif actor.angle == 180: # baixo
+            y += 50
+        elif actor.angle == 270: # direita
+            x += 50
+    else:
+        if actor.angle == 0:   # cima
+            y += 50
+        elif actor.angle == 90:  # esquerda
+            x += 50
+        elif actor.angle == 180: # baixo
+            y -= 50
+        elif actor.angle == 270: # direita
+            x -= 50
 
-    if keyboard.left:
-        angle = 90
+    hasBoard = False
+    boardSelected = None
 
-    if keyboard.up:
-        angle = 0
+    if bullet:
+        for _board in board:
+            if math.isclose(x, _board.x) and math.isclose(y, _board.y):
+                actor.x = _board.x
+                actor.y = _board.y
+                hasBoard = True
+                break
+    elif not bullet:
+        for _board in boardsSelecteds:
+            if math.isclose(actor.x, _board.x) and math.isclose(actor.y, _board.y):
+                boardSelected = _board
 
-    if keyboard.down:
-        angle = 180
+        for _board in board:
+            if math.isclose(x, _board.x) and math.isclose(y, _board.y) and _board not in boardsSelecteds:
+                actor.x = _board.x
+                actor.y = _board.y
+                boardsSelecteds.append(_board)
+                hasBoard = True
+                break
 
-    player.image = player.images[random.randint(0, len(player.images) - 1)]
-    player.angle = angle
+        if hasBoard and boardSelected is not None:
+            del boardsSelecteds[boardsSelecteds.index(boardSelected)]
 
-    for bug in bugs:
-        bug.image = bug.images[random.randint(0, len(bug.images) - 1)]
+    return hasBoard
 
-    if keyboard.space:
-        pass
+def actor_anime(actor):
+    angle = actor.angle
+    actor.image = actor.images[random.randint(0, len(actor.images) - 1)]
+    actor.angle = angle
 
-    if keyboard.ESCAPE:
+def on_key_down(key):
+    if keyboard.Escape:
         reset()
+        return
+
+    if keyboard.left or keyboard.right or keyboard.up or keyboard.down:
+        angle = player.angle
+
+        # right or left fica girando
+        if keyboard.right or keyboard.left:
+            if keyboard.right:
+                angle -= 90
+            elif keyboard.left:
+                angle += 90
+            
+            angle = angle % 360
+
+        player.angle = angle
+
+        if keyboard.up or keyboard.down:
+            next_board(player, keyboard.up == True)
+
+    elif keyboard.space:
+        bullet = Actor('bullet-1', anchor=('center', 'center'))
+        bullet.images = ['bullet-1', 'bullet-2', 'bullet-3']
+        bullet.angle = player.angle + 90
+        bullet.x = player.x
+        bullet.y = player.y
+        objects.append(bullet)
+        bullets.append(bullet)
+
+    bug = random.choice(bugs)
+
+    # Calcula a diferença de posição entre o bug e o player
+    dx = abs(player.x - bug.x)
+    dy = abs(player.y - bug.y)
+
+    # Decide a direção prioritária para o bug se mover em direção ao player
+    if dx > dy:
+        # Move horizontalmente
+        if dx > 0:
+            angle = 270  # direita
+        else:
+            angle = 90   # esquerda
+    else:
+        # Move verticalmente
+        if dy > 0:
+            angle = 180  # baixo
+        else:
+            angle = 0    # cima
+
+    bug.angle = angle
+    next_board(bug)
+
+def update(dt):
+    for bullet in bullets:
+        hasHit = False
+        for bug in bugs:
+            if math.isclose(bug.x, bullet.x) and math.isclose(bug.y, bullet.y):
+                hasHit = True
+                objects.remove(bug)
+                bugs.remove(bug)
+                break
+
+        if hasHit or not next_board(bullet, True, True):
+            objects.remove(bullet)
+            bullets.remove(bullet)
 
 def draw():
     screen.clear()
 
     for obj in objects:
+        actor_anime(obj)
         obj.draw()
+
+if __name__ == "__main__":
+    import pgzrun
+    pgzrun.go()
