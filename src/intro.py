@@ -100,7 +100,7 @@ def next_board(actor, forward=True, bullet=False):
     elif not bullet:
         for _board in boardsSelecteds:
             if math.isclose(actor.x, _board.x) and math.isclose(actor.y, _board.y):
-                boardSelected = _board
+                boardSelected = boardsSelecteds.index(_board)
 
         for _board in board:
             if math.isclose(x, _board.x) and math.isclose(y, _board.y) and _board not in boardsSelecteds:
@@ -111,7 +111,7 @@ def next_board(actor, forward=True, bullet=False):
                 break
 
         if hasBoard and boardSelected is not None:
-            del boardsSelecteds[boardsSelecteds.index(boardSelected)]
+            del boardsSelecteds[boardSelected]
 
     return hasBoard
 
@@ -151,28 +151,29 @@ def on_key_down(key):
         objects.append(bullet)
         bullets.append(bullet)
 
-    bug = random.choice(bugs)
+    if len(bugs) > 0:
+        bug = random.choice(bugs)
 
-    # Calcula a diferença de posição entre o bug e o player
-    dx = abs(player.x - bug.x)
-    dy = abs(player.y - bug.y)
+        # Calcula a diferença de posição entre o bug e o player
+        dx = abs(player.x - bug.x)
+        dy = abs(player.y - bug.y)
 
-    # Decide a direção prioritária para o bug se mover em direção ao player
-    if dx > dy:
-        # Move horizontalmente
-        if dx > 0:
-            angle = 270  # direita
+        # Decide a direção prioritária para o bug se mover em direção ao player
+        if dx > dy:
+            # Move horizontalmente
+            if dx > 0:
+                angle = 270  # direita
+            else:
+                angle = 90   # esquerda
         else:
-            angle = 90   # esquerda
-    else:
-        # Move verticalmente
-        if dy > 0:
-            angle = 180  # baixo
-        else:
-            angle = 0    # cima
+            # Move verticalmente
+            if dy > 0:
+                angle = 180  # baixo
+            else:
+                angle = 0    # cima
 
-    bug.angle = angle
-    next_board(bug)
+        bug.angle = angle
+        next_board(bug, dx > dy)
 
 def update(dt):
     for bullet in bullets:
@@ -182,6 +183,11 @@ def update(dt):
                 hasHit = True
                 objects.remove(bug)
                 bugs.remove(bug)
+
+                for _board in boardsSelecteds:
+                    if math.isclose(bug.x, _board.x) and math.isclose(bug.y, _board.y):
+                        boardsSelecteds.remove(_board)
+                        break
                 break
 
         if hasHit or not next_board(bullet, True, True):
