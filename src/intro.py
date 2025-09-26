@@ -145,7 +145,7 @@ def on_key_down(key):
     elif keyboard.space:
         bullet = Actor('bullet-1', anchor=('center', 'center'))
         bullet.images = ['bullet-1', 'bullet-2', 'bullet-3']
-        bullet.angle = player.angle + 90
+        bullet.angle = player.angle
         bullet.x = player.x
         bullet.y = player.y
         objects.append(bullet)
