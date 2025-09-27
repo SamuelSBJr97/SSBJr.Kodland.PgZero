@@ -172,6 +172,17 @@ class BattleBugs:
     
 
     def key_down(self, keyboard):
+        if keyboard.m:
+            # ativa/desativa o som
+            self.som = not self.som
+            try:
+                if self.som:
+                    self.play_theme()
+                else:
+                    self.stop_theme()
+            except Exception:
+                pass
+
         if self.state == 'intro':
             if keyboard.RETURN:
                 # inicia o jogo
@@ -181,16 +192,6 @@ class BattleBugs:
                 try:
                     if self.som:
                         self.play_theme()
-                except Exception:
-                    pass
-            if keyboard.m:
-                # ativa/desativa o som
-                self.som = not self.som
-                try:
-                    if self.som:
-                        self.play_theme()
-                    else:
-                        self.stop_theme()
                 except Exception:
                     pass
             if keyboard.Escape:
