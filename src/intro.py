@@ -6,6 +6,7 @@ from pgzero.actor import Actor
 from pgzero.keyboard import keyboard
 from pgzero import tone
 from pgzero import music as pgz_music
+from pgzero.animation import animate
 from pgzero.clock import clock
 
 class BattleBugs:
@@ -30,10 +31,12 @@ class BattleBugs:
 
     def start(self):
         self.bug_image = Actor('bug-1', anchor=('center', 'center'))
+        self.bug_image.images = ['bug-1', 'bug-2', 'bug-3', 'bug-4']
         self.bug_image.x = 400
         self.bug_image.y = 250
 
         self.player_image = Actor('player-1', anchor=('center', 'center'))
+        self.player_image.images = ['player-1', 'player-2', 'player-3', 'player-4']
         self.player_image.x = 400
         self.player_image.y = 150
 
@@ -100,27 +103,30 @@ class BattleBugs:
         # passa referencia dos objetos para facilitar o draw/update
         self.objects = [*self.board, *self.bugs, self.player]
 
-    def next_board(self, actor, forward=True, bullet=False):
+    def next_board(self, actor, animate, forward=True, bullet=False):
         x = actor.x
         y = actor.y
 
+        # use uma versão normalizada do ângulo (0..359) apenas para decisões de direção
+        actor_angle = int(actor.angle) % 360
+
         if forward:
-            if actor.angle == 0:   # cima
+            if actor_angle == 0:   # cima
                 y -= 50
-            elif actor.angle == 90:  # esquerda
+            elif actor_angle == 90:  # esquerda
                 x -= 50
-            elif actor.angle == 180: # baixo
+            elif actor_angle == 180: # baixo
                 y += 50
-            elif actor.angle == 270: # direita
+            elif actor_angle == 270: # direita
                 x += 50
         else:
-            if actor.angle == 0:   # cima
+            if actor_angle == 0:   # cima
                 y += 50
-            elif actor.angle == 90:  # esquerda
+            elif actor_angle == 90:  # esquerda
                 x += 50
-            elif actor.angle == 180: # baixo
+            elif actor_angle == 180: # baixo
                 y -= 50
-            elif actor.angle == 270: # direita
+            elif actor_angle == 270: # direita
                 x -= 50
 
         hasBoard = False
@@ -129,8 +135,7 @@ class BattleBugs:
         if bullet:
             for _board in self.board:
                 if x == _board.x and y == _board.y:
-                    actor.x = _board.x
-                    actor.y = _board.y
+                    animate(actor, pos=(_board.x, _board.y), duration=0.1, tween='linear')
                     hasBoard = True
                     break
         elif not bullet:
@@ -140,8 +145,7 @@ class BattleBugs:
 
             for _board in self.board:
                 if x == _board.x and y == _board.y and _board not in self.boardsSelecteds:
-                    actor.x = _board.x
-                    actor.y = _board.y
+                    animate(actor, pos=(_board.x, _board.y), duration=0.1, tween='linear')
                     self.boardsSelecteds.append(_board)
                     hasBoard = True
                     break
@@ -163,9 +167,8 @@ class BattleBugs:
         angle = actor.angle
         actor.image = actor.images[(actor.images.index(actor.image) + 1) % len(actor.images)] # algoritmo que verifica a imagem atual e determina a proxima com base na lista de imagems
         actor.angle = angle
-    
 
-    def key_down(self, keyboard):
+    def key_down(self, keyboard, animate):
         if keyboard.m:
             # ativa/desativa o som
             self.som = not self.som
@@ -194,21 +197,22 @@ class BattleBugs:
                 return
 
             if keyboard.left or keyboard.right or keyboard.up or keyboard.down:
-                angle = self.player.angle
+                # use o valor acumulado do ângulo para permitir giros completos (>360)
+                curr = self.player.angle
+
+                new_angle = curr
 
                 # right or left fica girando
                 if keyboard.right or keyboard.left:
                     if keyboard.right:
-                        angle -= 90
+                        new_angle = curr - 90
                     elif keyboard.left:
-                        angle += 90
+                        new_angle = curr + 90
                     
-                    angle = angle % 360
-
-                    self.player.angle = angle
+                    animate(self.player, angle=new_angle, duration=0.1, tween='linear')
 
                 elif keyboard.up or keyboard.down:
-                    self.next_board(self.player, keyboard.up == True)
+                    self.next_board(self.player, animate, keyboard.up == True)
 
             elif keyboard.space:
                 bullet = Actor('bullet-1', anchor=('center', 'center'))
@@ -218,6 +222,8 @@ class BattleBugs:
                 bullet.y = self.player.y
                 self.objects.append(bullet)
                 self.bullets.append(bullet)
+
+                self.next_board(bullet, animate, True, True)
 
                 # Som de disparo — respeita self.som
                 try:
@@ -248,14 +254,15 @@ class BattleBugs:
                     else:
                         angle = 0    # cima
 
-                bug.angle = angle
-                self.next_board(bug, dx < dy)
+                animate(bug, angle=angle, duration=0.1, tween='linear')
+                self.next_board(bug, animate, dx < dy)
 
-    def update(self, dt, keyboard):
+    def update(self, dt, keyboard, animate):
         if self.state != 'game':
             return
 
         for bullet in self.bullets:
+            self.next_board(bullet, animate, True, True)
             hasHit = False
             for bug in self.bugs:
                 if bug.x == bullet.x and bug.y == bullet.y:
@@ -269,7 +276,7 @@ class BattleBugs:
                             break
                     break
 
-            if hasHit or not self.next_board(bullet, True, True):
+            if hasHit:
                 self.objects.remove(bullet)
                 self.bullets.remove(bullet)
                 # Som de explosão quando um bug é acertado
@@ -282,7 +289,7 @@ class BattleBugs:
                 except Exception:
                     pass
 
-    def draw(self, screen, keyboard):
+    def draw(self, screen, keyboard, animate):
         screen.clear()
 
         for obj in self.objects:
@@ -294,9 +301,11 @@ class BattleBugs:
             # adicione os controles e objetivos do jogo aqui
             screen.draw.text('Use as setas para mover e a barra de espaço para atirar', center=(400, 100), color='white', fontsize=40)
             self.player_image.draw()
+            self.actor_anime(self.player_image)
             
             screen.draw.text('Dispare nos bugs!', center=(400, 200), color='white', fontsize=40)
             self.bug_image.draw()
+            self.actor_anime(self.bug_image)
 
             screen.draw.text('Tecle Enter para iniciar', center=(400, 350), color='white', fontsize=40)
             screen.draw.text(f'Som {"ativado" if self.som else "desativado"}. Tecle M para {"desativar" if self.som else "ativar"}', center=(400, 400), color='white', fontsize=40) # texto formatado de acordo com o estado do som
@@ -311,12 +320,12 @@ class BattleBugs:
 battleBugs = BattleBugs()
 
 def on_key_down(key):
-    battleBugs.key_down(keyboard)
+    battleBugs.key_down(keyboard, animate)
 
 def update(dt):
-    battleBugs.update(dt, keyboard)
+    battleBugs.update(dt, keyboard, animate)
 
 def draw():
-    battleBugs.draw(screen, keyboard)
+    battleBugs.draw(screen, keyboard, animate)
 
 pgzrun.go()
