@@ -20,8 +20,18 @@ class BattleBugs:
         self.player: Actor
         self.som = True
         self.state = 'intro'  # intro, start, gameover
+        self.bug_image: Actor
+        self.player_image: Actor
 
     def start(self):
+        self.bug_image = Actor('bug-1', anchor=('center', 'center'))
+        self.bug_image.x = 400
+        self.bug_image.y = 250
+
+        self.player_image = Actor('player-1', anchor=('center', 'center'))
+        self.player_image.x = 400
+        self.player_image.y = 150
+
         self.board = []
         for x in range(16):
             for y in range(10):
@@ -31,6 +41,9 @@ class BattleBugs:
                 floor.y = y * 50 + 25 + 50
                 self.board.append(floor)
 
+        self.objects = [*self.board]
+
+    def players(self):
         self.boardsSelecteds = []
 
         self.bugs = []
@@ -56,7 +69,6 @@ class BattleBugs:
         self.player.x = _board.x
         self.player.y = _board.y
 
-        self.objects = []
         # passa referencia dos objetos para facilitar o draw/update
         self.objects = [*self.board, *self.bugs, self.player]
 
@@ -113,7 +125,7 @@ class BattleBugs:
 
     def actor_anime(self, actor: Actor):
         angle = actor.angle
-        actor.image = actor.images[random.randint(0, len(actor.images) - 1)]
+        actor.image = actor.images[(actor.images.index(actor.image) + 1) % len(actor.images)] # algoritmo que verifica a imagem atual e determina a proxima com base na lista de imagems
         actor.angle = angle
 
     def key_down(self, keyboard):
@@ -121,6 +133,7 @@ class BattleBugs:
             if keyboard.RETURN:
                 # inicia o jogo
                 self.state = 'game'
+                self.players()
             if keyboard.m:
                 # ativa/desativa o som
                 self.som = not self.som
@@ -215,9 +228,17 @@ class BattleBugs:
             obj.draw()
 
         if self.state == 'intro':
-            screen.draw.text('Tecle Enter para iniciar', center=(400, 250), color='white', fontsize=40)
-            screen.draw.text(f'Som {"ativado" if self.som else "desativado"}. Tecle M para {"desativar" if self.som else "ativar"}', center=(400, 300), color='white', fontsize=40) # texto formatado de acordo com o estado do som
-            screen.draw.text('Tecle Esc para encerrar', center=(400, 350), color='white', fontsize=40)
+            screen.draw.text('Bem-vindo ao Battle Bugs!', center=(400, 50), color='white', fontsize=40)
+            # adicione os controles e objetivos do jogo aqui
+            screen.draw.text('Use as setas para mover e a barra de espaço para atirar', center=(400, 100), color='white', fontsize=40)
+            self.player_image.draw()
+            
+            screen.draw.text('Dispare nos bugs!', center=(400, 200), color='white', fontsize=40)
+            self.bug_image.draw()
+
+            screen.draw.text('Tecle Enter para iniciar', center=(400, 350), color='white', fontsize=40)
+            screen.draw.text(f'Som {"ativado" if self.som else "desativado"}. Tecle M para {"desativar" if self.som else "ativar"}', center=(400, 400), color='white', fontsize=40) # texto formatado de acordo com o estado do som
+            screen.draw.text('Tecle Esc para encerrar', center=(400, 450), color='white', fontsize=40)
         if self.state == 'game' and len(self.bugs) == 0:
             screen.draw.text('Parabéns! Você venceu!', center=(400, 250), color='white', fontsize=40)
             screen.draw.text('Tecle Esc para reiniciar', center=(400, 300), color='white', fontsize=40)
