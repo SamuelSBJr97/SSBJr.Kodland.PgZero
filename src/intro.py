@@ -9,6 +9,7 @@ class BattleBugs:
     
     def __init__(self):
         self.reset()
+        self.start()
 
     def reset(self):
         self.board = []
@@ -20,25 +21,16 @@ class BattleBugs:
         self.som = True
         self.state = 'intro'  # intro, start, gameover
 
-    def intro(self, screen):
-        if len(self.board) > 0:
-            return
-        
-        # algoritmo para gerar chão que o player e bugs podem andar
+    def start(self):
+        self.board = []
         for x in range(16):
             for y in range(10):
-                if random.random() < 0.8:
-                    floor = Actor('floor')
-                    floor.images = ['floor']
-                    floor.x = x * 50 + 25
-                    floor.y = y * 50 + 25 + 50
-                    self.board.append(floor)
+                floor = Actor('floor')
+                floor.images = ['floor']
+                floor.x = x * 50 + 25
+                floor.y = y * 50 + 25 + 50
+                self.board.append(floor)
 
-        self.objects = [*self.board]
-
-        screen.draw.text(f'Bugs restantes: {len(self.bugs)}', (10, 10), color='white')
-
-    def start(self):
         self.boardsSelecteds = []
 
         self.bugs = []
@@ -67,8 +59,6 @@ class BattleBugs:
         self.objects = []
         # passa referencia dos objetos para facilitar o draw/update
         self.objects = [*self.board, *self.bugs, self.player]
-
-        self.state = 'game'
 
     def next_board(self, actor, forward=True, bullet=False):
         x = actor.x
@@ -127,62 +117,73 @@ class BattleBugs:
         actor.angle = angle
 
     def key_down(self, keyboard):
-        if self.state != 'game':
-            return
+        if self.state == 'intro':
+            if keyboard.RETURN:
+                # inicia o jogo
+                self.state = 'game'
+            if keyboard.m:
+                # ativa/desativa o som
+                self.som = not self.som
+            if keyboard.Escape:
+                # encerra o jogo
+                sys.exit()
 
-        if keyboard.Escape:
-            self.reset()
-            return
+        elif self.state == 'game':
+            if keyboard.Escape:
+                self.state = 'intro'
+                self.reset()
+                self.start()
+                return
 
-        if keyboard.left or keyboard.right or keyboard.up or keyboard.down:
-            angle = self.player.angle
+            if keyboard.left or keyboard.right or keyboard.up or keyboard.down:
+                angle = self.player.angle
 
-            # right or left fica girando
-            if keyboard.right or keyboard.left:
-                if keyboard.right:
-                    angle -= 90
-                elif keyboard.left:
-                    angle += 90
-                
-                angle = angle % 360
+                # right or left fica girando
+                if keyboard.right or keyboard.left:
+                    if keyboard.right:
+                        angle -= 90
+                    elif keyboard.left:
+                        angle += 90
+                    
+                    angle = angle % 360
 
-                self.player.angle = angle
+                    self.player.angle = angle
 
-            elif keyboard.up or keyboard.down:
-                self.next_board(self.player, keyboard.up == True)
+                elif keyboard.up or keyboard.down:
+                    self.next_board(self.player, keyboard.up == True)
 
-        elif keyboard.space:
-            bullet = Actor('bullet-1', anchor=('center', 'center'))
-            bullet.images = ['bullet-1', 'bullet-2', 'bullet-3']
-            bullet.angle = self.player.angle
-            bullet.x = self.player.x
-            bullet.y = self.player.y
-            self.objects.append(bullet)
-            self.bullets.append(bullet)
+            elif keyboard.space:
+                bullet = Actor('bullet-1', anchor=('center', 'center'))
+                bullet.images = ['bullet-1', 'bullet-2', 'bullet-3']
+                bullet.angle = self.player.angle
+                bullet.x = self.player.x
+                bullet.y = self.player.y
+                self.objects.append(bullet)
+                self.bullets.append(bullet)
 
-        if len(self.bugs) > 0 and (keyboard.left or keyboard.right or keyboard.up or keyboard.down or keyboard.space):
-            bug = random.choice(self.bugs)
+            if len(self.bugs) > 0 and (keyboard.left or keyboard.right or keyboard.up or keyboard.down or keyboard.space):
+                bug = random.choice(self.bugs)
 
-            # Calcula a diferença de posição entre o bug e o player
-            dx = abs(self.player.x - bug.x)
-            dy = abs(self.player.y - bug.y)
+                # Calcula a diferença de posição entre o bug e o player
+                dx = abs(self.player.x - bug.x)
+                dy = abs(self.player.y - bug.y)
 
-            # Decide a direção prioritária para o bug se mover em direção ao player
-            if dx > dy:
-                # Move horizontalmente
-                if dx > 0:
-                    angle = 270  # direita
+                # Decide a direção prioritária para o bug se mover em direção ao player
+                if dx > dy:
+                    # Move horizontalmente
+                    if dx > 0:
+                        angle = 270  # direita
+                    else:
+                        angle = 90   # esquerda
                 else:
-                    angle = 90   # esquerda
-            else:
-                # Move verticalmente
-                if dy > 0:
-                    angle = 180  # baixo
-                else:
-                    angle = 0    # cima
+                    # Move verticalmente
+                    if dy > 0:
+                        angle = 180  # baixo
+                    else:
+                        angle = 0    # cima
 
-            bug.angle = angle
-            self.next_board(bug, dx < dy)
+                bug.angle = angle
+                self.next_board(bug, dx < dy)
 
     def update(self, dt, keyboard):
         if self.state != 'game':
@@ -214,20 +215,14 @@ class BattleBugs:
             obj.draw()
 
         if self.state == 'intro':
-            self.intro(screen)
             screen.draw.text('Tecle Enter para iniciar', center=(400, 250), color='white', fontsize=40)
-            screen.draw.text('Som ativado. Tecle M para desativar', center=(400, 300), color='white', fontsize=40)
+            screen.draw.text(f'Som {"ativado" if self.som else "desativado"}. Tecle M para {"desativar" if self.som else "ativar"}', center=(400, 300), color='white', fontsize=40) # texto formatado de acordo com o estado do som
             screen.draw.text('Tecle Esc para encerrar', center=(400, 350), color='white', fontsize=40)
-            if keyboard.RETURN:
-                self.state = 'start'
-            if keyboard.m:
-                # ativa/desativa o som
-                self.som = not self.som
-            if keyboard.Escape:
-                # encerra o jogo
-                sys.exit()
-        elif self.state == 'start':
-            self.start()
+        if self.state == 'game' and len(self.bugs) == 0:
+            screen.draw.text('Parabéns! Você venceu!', center=(400, 250), color='white', fontsize=40)
+            screen.draw.text('Tecle Esc para reiniciar', center=(400, 300), color='white', fontsize=40)
+        if self.state == 'game' and len(self.bugs) > 0:
+            screen.draw.text(f'Bugs restantes: {len(self.bugs)}', topright=(790, 10), color='white', fontsize=30)
 
 # Inicializa o jogo
 battleBugs = BattleBugs()
