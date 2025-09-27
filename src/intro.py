@@ -27,12 +27,6 @@ class BattleBugs:
         self.state = 'intro'  # intro, start, gameover
         self.bug_image: Actor
         self.player_image: Actor
-        # (tema removido) não mais inicializa música de fundo aqui
-        # garante que a música pare ao resetar
-        try:
-            self.stop_theme()
-        except Exception:
-            pass
 
     def start(self):
         self.bug_image = Actor('bug-1', anchor=('center', 'center'))
@@ -188,12 +182,6 @@ class BattleBugs:
                 # inicia o jogo
                 self.state = 'game'
                 self.players()
-                # inicia música tema se som ativado
-                try:
-                    if self.som:
-                        self.play_theme()
-                except Exception:
-                    pass
             if keyboard.Escape:
                 # encerra o jogo
                 sys.exit()
@@ -290,7 +278,7 @@ class BattleBugs:
                         # explosão mais grave e longa
                         tone.play('C2', 0.20)
                         # nota de ressonância após 0.12s (grave)
-                        clock.schedule_unique(lambda: tone.play('G2', 0.14), 0.12)
+                        tone.play('G2', 0.14)
                 except Exception:
                     pass
 
