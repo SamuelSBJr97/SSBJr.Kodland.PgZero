@@ -93,41 +93,34 @@ class BattleBugs:
     def next_board(self, actor, animate, forward=True, bullet=False):
         x = actor.x
         y = actor.y
+        step = 50
 
-        # use uma versão normalizada do ângulo (0..359) apenas para decisões de direção
-        actor_angle = int(actor.angle) % 360
+        # Calcula deslocamento baseado no ângulo do ator.
+        # Convenção: angle=0 => cima; angle aumenta no sentido anti-horário.
+        # Fórmulas escolhidas para manter compatibilidade com o mapeamento anterior:
+        # dx = -sin(rad) * step, dy = -cos(rad) * step
+        try:
+            rad = math.radians(actor.angle)
+            mult = 1 if forward else -1
+            dx = -math.sin(rad) * step * mult
+            dy = -math.cos(rad) * step * mult
+            new_x = int(round(x + dx))
+            new_y = int(round(y + dy))
+        except Exception:
+            new_x, new_y = int(x), int(y)
 
-        if forward:
-            if actor_angle == 0:   # cima
-                y -= 50
-            elif actor_angle == 90:  # esquerda
-                x -= 50
-            elif actor_angle == 180: # baixo
-                y += 50
-            elif actor_angle == 270: # direita
-                x += 50
-        else:
-            if actor_angle == 0:   # cima
-                y += 50
-            elif actor_angle == 90:  # esquerda
-                x += 50
-            elif actor_angle == 180: # baixo
-                y -= 50
-            elif actor_angle == 270: # direita
-                x -= 50
-
-        animate(actor, pos=(self.board.x, self.board.y), duration=0.1, tween='linear')
+        # anima para a nova posição calculada
+        animate(actor, pos=(new_x, new_y), duration=0.1, tween='linear')
 
         if not bullet:
             # Som de movimento (nota curta) — respeita self.som quando actor for player ou bug
             try:
                 if self.som:
-                    # som de movimento mais grave
                     tone.play('G3', 0.06)
             except Exception:
                 pass
 
-        return self.out_of_bounds(x, y)
+        return self.out_of_bounds(new_x, new_y)
 
     def out_of_bounds(self, x, y, by = 0, bx = 0, w = 800, h = 600):
         if x < 0 + bx or x > w - bx or y < 50 + by or y > h - by:
@@ -176,13 +169,13 @@ class BattleBugs:
 
                 new_angle = curr
 
-                # right or left fica girando
+                # right or left fica girando (agora em incrementos de 35°)
                 if keyboard.right or keyboard.left:
                     if keyboard.right:
-                        new_angle = curr - 90
+                        new_angle = curr - 35
                     elif keyboard.left:
-                        new_angle = curr + 90
-                    
+                        new_angle = curr + 35
+
                     animate(self.player, angle=new_angle, duration=0.1, tween='linear')
 
                 elif keyboard.up or keyboard.down:
@@ -210,26 +203,15 @@ class BattleBugs:
             if len(self.bugs) > 0 and (keyboard.left or keyboard.right or keyboard.up or keyboard.down or keyboard.space):
                 bug = random.choice(self.bugs)
 
-                # Calcula a diferença de posição entre o bug e o player
-                dx = abs(self.player.x - bug.x)
-                dy = abs(self.player.y - bug.y)
-
-                # Decide a direção prioritária para o bug se mover em direção ao player
-                if dx > dy:
-                    # Move horizontalmente
-                    if dx > 0:
-                        angle = 270  # direita
-                    else:
-                        angle = 90   # esquerda
-                else:
-                    # Move verticalmente
-                    if dy > 0:
-                        angle = 180  # baixo
-                    else:
-                        angle = 0    # cima
+                # Calcula o vetor do bug até o player e obtém um ângulo que
+                # segue a mesma convenção do jogador (0 = cima, aumenta CCW).
+                vx = self.player.x - bug.x
+                vy = self.player.y - bug.y
+                angle = math.degrees(math.atan2(-vx, -vy)) % 360
 
                 animate(bug, angle=angle, duration=0.1, tween='linear')
-                self.next_board(bug, animate, dx < dy)
+                # Move o bug um passo para frente nessa direção
+                self.next_board(bug, animate, True)
 
     def update(self, dt, keyboard, animate):
         if self.state != 'game':
