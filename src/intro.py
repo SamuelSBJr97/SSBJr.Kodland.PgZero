@@ -5,11 +5,15 @@ import random
 from pgzero.actor import Actor
 from pgzero.keyboard import keyboard
 from pgzero import tone
+from pgzero import music as pgz_music
 from pgzero.clock import clock
 
 class BattleBugs:
     
     def __init__(self):
+        self.som = True
+        self.som_playing = False
+
         self.reset()
         self.start()
 
@@ -20,11 +24,15 @@ class BattleBugs:
         self.bullets = []
         self.objects = []
         self.player: Actor
-        self.som = True
         self.state = 'intro'  # intro, start, gameover
         self.bug_image: Actor
         self.player_image: Actor
         # (tema removido) não mais inicializa música de fundo aqui
+        # garante que a música pare ao resetar
+        try:
+            self.stop_theme()
+        except Exception:
+            pass
 
     def start(self):
         self.bug_image = Actor('bug-1', anchor=('center', 'center'))
@@ -45,6 +53,29 @@ class BattleBugs:
                 self.board.append(floor)
 
         self.objects = [*self.board]
+
+        self.play_theme()
+
+    def play_theme(self):
+        """Tenta iniciar a reprodução do tema em loop, respeitando self.som."""
+        # usa somente a API do pgzero - requer que exista music/tema.mp3
+        try:
+            if not self.som or self.som_playing:
+                return
+            pgz_music.play('tema')
+            pgz_music.set_volume(0.1)  # volume mais baixo para não incomodar
+            self.som_playing = True
+        except Exception:
+            # não crashar se algo falhar; talvez o arquivo não exista
+            pass
+
+    def stop_theme(self):
+        """Para a reprodução do tema (fade out não usado para simplicidade)."""
+        try:
+            pgz_music.stop()
+            self.som_playing = False
+        except Exception:
+            pass
 
     def players(self):
         self.boardsSelecteds = []
@@ -146,9 +177,22 @@ class BattleBugs:
                 # inicia o jogo
                 self.state = 'game'
                 self.players()
+                # inicia música tema se som ativado
+                try:
+                    if self.som:
+                        self.play_theme()
+                except Exception:
+                    pass
             if keyboard.m:
                 # ativa/desativa o som
                 self.som = not self.som
+                try:
+                    if self.som:
+                        self.play_theme()
+                    else:
+                        self.stop_theme()
+                except Exception:
+                    pass
             if keyboard.Escape:
                 # encerra o jogo
                 sys.exit()
