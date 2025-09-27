@@ -1,3 +1,4 @@
+import sys
 import pgzrun
 import math
 import random
@@ -16,6 +17,7 @@ class BattleBugs:
         self.bullets = []
         self.objects = []
         self.player: Actor
+        self.som = True
         self.state = 'intro'  # intro, start, gameover
 
     def intro(self, screen):
@@ -213,9 +215,17 @@ class BattleBugs:
 
         if self.state == 'intro':
             self.intro(screen)
-            screen.draw.text('Pressione Enter para iniciar', center=(400, 300), color='white', fontsize=40)
+            screen.draw.text('Tecle Enter para iniciar', center=(400, 250), color='white', fontsize=40)
+            screen.draw.text('Som ativado. Tecle M para desativar', center=(400, 300), color='white', fontsize=40)
+            screen.draw.text('Tecle Esc para encerrar', center=(400, 350), color='white', fontsize=40)
             if keyboard.RETURN:
                 self.state = 'start'
+            if keyboard.m:
+                # ativa/desativa o som
+                self.som = not self.som
+            if keyboard.Escape:
+                # encerra o jogo
+                sys.exit()
         elif self.state == 'start':
             self.start()
 
