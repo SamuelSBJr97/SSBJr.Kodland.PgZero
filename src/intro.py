@@ -4,6 +4,8 @@ import math
 import random
 from pgzero.actor import Actor
 from pgzero.keyboard import keyboard
+from pgzero import tone
+from pgzero.clock import clock
 
 class BattleBugs:
     
@@ -22,6 +24,7 @@ class BattleBugs:
         self.state = 'intro'  # intro, start, gameover
         self.bug_image: Actor
         self.player_image: Actor
+        # (tema removido) não mais inicializa música de fundo aqui
 
     def start(self):
         self.bug_image = Actor('bug-1', anchor=('center', 'center'))
@@ -121,12 +124,21 @@ class BattleBugs:
             if hasBoard and boardSelected is not None:
                 del self.boardsSelecteds[boardSelected]
 
+            # Som de movimento (nota curta) — respeita self.som quando actor for player ou bug
+            try:
+                if hasBoard and self.som:
+                    # som de movimento mais grave
+                    tone.play('G3', 0.06)
+            except Exception:
+                pass
+
         return hasBoard
 
     def actor_anime(self, actor: Actor):
         angle = actor.angle
         actor.image = actor.images[(actor.images.index(actor.image) + 1) % len(actor.images)] # algoritmo que verifica a imagem atual e determina a proxima com base na lista de imagems
         actor.angle = angle
+    
 
     def key_down(self, keyboard):
         if self.state == 'intro':
@@ -174,6 +186,14 @@ class BattleBugs:
                 self.objects.append(bullet)
                 self.bullets.append(bullet)
 
+                # Som de disparo — respeita self.som
+                try:
+                    if self.som:
+                        # som de disparo mais grave
+                        tone.play('F#4', 0.08)
+                except Exception:
+                    pass
+
             if len(self.bugs) > 0 and (keyboard.left or keyboard.right or keyboard.up or keyboard.down or keyboard.space):
                 bug = random.choice(self.bugs)
 
@@ -219,6 +239,15 @@ class BattleBugs:
             if hasHit or not self.next_board(bullet, True, True):
                 self.objects.remove(bullet)
                 self.bullets.remove(bullet)
+                # Som de explosão quando um bug é acertado
+                try:
+                    if hasHit and self.som:
+                        # explosão mais grave e longa
+                        tone.play('C2', 0.20)
+                        # nota de ressonância após 0.12s (grave)
+                        clock.schedule_unique(lambda: tone.play('G2', 0.14), 0.12)
+                except Exception:
+                    pass
 
     def draw(self, screen, keyboard):
         screen.clear()
