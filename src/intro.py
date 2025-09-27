@@ -1,6 +1,8 @@
 import pgzrun
 import math
 import random
+from pgzero.actor import Actor
+from pgzero.keyboard import keyboard
 
 def reset():
     global objects
