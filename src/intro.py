@@ -19,7 +19,7 @@ class BattleBugs:
         self.start()
 
     def reset(self):
-        self.board = []
+        self.board: Actor
         self.boardsSelecteds = []
         self.bugs = []
         self.bullets = []
@@ -40,16 +40,11 @@ class BattleBugs:
         self.player_image.x = 400
         self.player_image.y = 150
 
-        self.board = []
-        for x in range(16):
-            for y in range(10):
-                floor = Actor('floor')
-                floor.images = ['floor']
-                floor.x = x * 50 + 25
-                floor.y = y * 50 + 25 + 50
-                self.board.append(floor)
+        self.board = Actor('floor-500x800', anchor=('center', 'center'))
+        self.board.x = 400
+        self.board.y = 300
 
-        self.objects = [*self.board]
+        self.objects = [self.board]
 
         self.play_theme()
 
@@ -75,33 +70,25 @@ class BattleBugs:
             pass
 
     def players(self):
-        self.boardsSelecteds = []
-
         self.bugs = []
         for _ in range(5):
             bug = Actor('bug-1', anchor=('center', 'center'))
             bug.images = ['bug-1', 'bug-2', 'bug-3', 'bug-4']
             bug.angle = 0
 
-            _board = random.choice(list(filter(lambda b: b not in self.boardsSelecteds, self.board)))
-
-            self.boardsSelecteds.append(_board)
-            bug.x = _board.x
-            bug.y = _board.y
+            bug.x = random.randint(1, 7) * 50
+            bug.y = random.randint(1, 9) * 50 + 50
             self.bugs.append(bug)
 
         self.player = Actor("player-1", anchor=('center', 'center'))
         self.player.images = ['player-1', 'player-2', 'player-3', 'player-4']
         self.player.angle = 0
 
-        # garante que o player não comece em cima de um bug
-        _board = random.choice(list(filter(lambda b: b not in self.boardsSelecteds, self.board)))
-
-        self.player.x = _board.x
-        self.player.y = _board.y
+        self.player.x = random.randint(1, 7) * 50
+        self.player.y = random.randint(1, 9) * 50 + 50
 
         # passa referencia dos objetos para facilitar o draw/update
-        self.objects = [*self.board, *self.bugs, self.player]
+        self.objects = [self.board, *self.bugs, self.player]
 
     def next_board(self, actor, animate, forward=True, bullet=False):
         x = actor.x
@@ -129,41 +116,28 @@ class BattleBugs:
             elif actor_angle == 270: # direita
                 x -= 50
 
-        hasBoard = False
-        boardSelected = None
+        animate(actor, pos=(self.board.x, self.board.y), duration=0.1, tween='linear')
 
-        if bullet:
-            for _board in self.board:
-                if x == _board.x and y == _board.y:
-                    animate(actor, pos=(_board.x, _board.y), duration=0.1, tween='linear')
-                    hasBoard = True
-                    break
-        elif not bullet:
-            for _board in self.boardsSelecteds:
-                if actor.x == _board.x and actor.y == _board.y:
-                    boardSelected = self.boardsSelecteds.index(_board)
-
-            for _board in self.board:
-                if x == _board.x and y == _board.y and _board not in self.boardsSelecteds:
-                    animate(actor, pos=(_board.x, _board.y), duration=0.1, tween='linear')
-                    self.boardsSelecteds.append(_board)
-                    hasBoard = True
-                    break
-
-            if hasBoard and boardSelected is not None:
-                del self.boardsSelecteds[boardSelected]
-
+        if not bullet:
             # Som de movimento (nota curta) — respeita self.som quando actor for player ou bug
             try:
-                if hasBoard and self.som:
+                if self.som:
                     # som de movimento mais grave
                     tone.play('G3', 0.06)
             except Exception:
                 pass
 
-        return hasBoard
+        return self.out_of_bounds(x, y)
+
+    def out_of_bounds(self, x, y, by = 0, bx = 0, w = 800, h = 600):
+        if x < 0 + bx or x > w - bx or y < 50 + by or y > h - by:
+            return True
+        return False
 
     def actor_anime(self, actor: Actor):
+        if not hasattr(actor, 'images'):
+            return
+        
         angle = actor.angle
         actor.image = actor.images[(actor.images.index(actor.image) + 1) % len(actor.images)] # algoritmo que verifica a imagem atual e determina a proxima com base na lista de imagems
         actor.angle = angle
@@ -265,15 +239,10 @@ class BattleBugs:
             self.next_board(bullet, animate, True, True)
             hasHit = False
             for bug in self.bugs:
-                if bug.x == bullet.x and bug.y == bullet.y:
+                if bullet.colliderect(bug):
                     hasHit = True
                     self.objects.remove(bug)
                     self.bugs.remove(bug)
-
-                    for _board in self.boardsSelecteds:
-                        if bug.x == _board.x and bug.y == _board.y:
-                            self.boardsSelecteds.remove(_board)
-                            break
                     break
 
             if hasHit:
