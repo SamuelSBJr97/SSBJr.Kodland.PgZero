@@ -92,18 +92,18 @@ def next_board(actor, forward=True, bullet=False):
 
     if bullet:
         for _board in board:
-            if math.isclose(x, _board.x) and math.isclose(y, _board.y):
+            if x == _board.x and y == _board.y:
                 actor.x = _board.x
                 actor.y = _board.y
                 hasBoard = True
                 break
     elif not bullet:
         for _board in boardsSelecteds:
-            if math.isclose(actor.x, _board.x) and math.isclose(actor.y, _board.y):
+            if actor.x == _board.x and actor.y == _board.y:
                 boardSelected = boardsSelecteds.index(_board)
 
         for _board in board:
-            if math.isclose(x, _board.x) and math.isclose(y, _board.y) and _board not in boardsSelecteds:
+            if x == _board.x and y == _board.y and _board not in boardsSelecteds:
                 actor.x = _board.x
                 actor.y = _board.y
                 boardsSelecteds.append(_board)
@@ -137,9 +137,9 @@ def on_key_down(key):
             
             angle = angle % 360
 
-        player.angle = angle
+            player.angle = angle
 
-        if keyboard.up or keyboard.down:
+        elif keyboard.up or keyboard.down:
             next_board(player, keyboard.up == True)
 
     elif keyboard.space:
@@ -151,7 +151,7 @@ def on_key_down(key):
         objects.append(bullet)
         bullets.append(bullet)
 
-    if len(bugs) > 0:
+    if len(bugs) > 0 and (keyboard.left or keyboard.right or keyboard.up or keyboard.down or keyboard.space):
         bug = random.choice(bugs)
 
         # Calcula a diferença de posição entre o bug e o player
@@ -173,19 +173,19 @@ def on_key_down(key):
                 angle = 0    # cima
 
         bug.angle = angle
-        next_board(bug, dx > dy)
+        next_board(bug, dx < dy)
 
 def update(dt):
     for bullet in bullets:
         hasHit = False
         for bug in bugs:
-            if math.isclose(bug.x, bullet.x) and math.isclose(bug.y, bullet.y):
+            if bug.x == bullet.x and bug.y == bullet.y:
                 hasHit = True
                 objects.remove(bug)
                 bugs.remove(bug)
 
                 for _board in boardsSelecteds:
-                    if math.isclose(bug.x, _board.x) and math.isclose(bug.y, _board.y):
+                    if bug.x == _board.x and bug.y == _board.y:
                         boardsSelecteds.remove(_board)
                         break
                 break
