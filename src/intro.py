@@ -261,7 +261,7 @@ class BattleBugs:
             # Move o bug um passo para frente nessa direção
             self.next_board(bug, animate, forward=True)
 
-            if random.random() < 0.05:  # 5% de chance de atirar
+            if random.random() < 0.1 and keyboard.space:  # 10% de chance de atirar se o jogador atirar
                 bullet = Actor('bullet-1', anchor=('center', 'center'))
                 bullet.images = ['bullet-1', 'bullet-2', 'bullet-3']
                 bullet.angle = bug.angle
