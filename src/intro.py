@@ -40,9 +40,9 @@ class BattleBugs:
         self.player_image.x = 400
         self.player_image.y = 150
 
-        self.board = Actor('floor-500x800', anchor=('center', 'center'))
+        self.board = Actor('floor-550x800', anchor=('center', 'center'))
         self.board.x = 400
-        self.board.y = 300
+        self.board.y = 325
 
         self.objects = [self.board]
 
@@ -109,8 +109,11 @@ class BattleBugs:
         except Exception:
             new_x, new_y = int(x), int(y)
 
+        out_of_bounds = self.out_of_bounds(new_x, new_y)
+
         # anima para a nova posição calculada
-        animate(actor, pos=(new_x, new_y), duration=0.1, tween='linear')
+        if not out_of_bounds:
+            animate(actor, pos=(new_x, new_y), duration=0.1, tween='linear')
 
         if not bullet:
             # Som de movimento (nota curta) — respeita self.som quando actor for player ou bug
@@ -120,7 +123,7 @@ class BattleBugs:
             except Exception:
                 pass
 
-        return self.out_of_bounds(new_x, new_y)
+        return out_of_bounds
 
     def out_of_bounds(self, x, y, by = 0, bx = 0, w = 800, h = 600):
         if x < 0 + bx or x > w - bx or y < 50 + by or y > h - by:
@@ -162,26 +165,8 @@ class BattleBugs:
                 self.reset()
                 self.start()
                 return
-
-            if keyboard.left or keyboard.right or keyboard.up or keyboard.down:
-                # use o valor acumulado do ângulo para permitir giros completos (>360)
-                curr = self.player.angle
-
-                new_angle = curr
-
-                # right or left fica girando (agora em incrementos de 35°)
-                if keyboard.right or keyboard.left:
-                    if keyboard.right:
-                        new_angle = curr - 35
-                    elif keyboard.left:
-                        new_angle = curr + 35
-
-                    animate(self.player, angle=new_angle, duration=0.1, tween='linear')
-
-                elif keyboard.up or keyboard.down:
-                    self.next_board(self.player, animate, keyboard.up == True)
-
-            elif keyboard.space:
+            
+            if keyboard.space:
                 bullet = Actor('bullet-1', anchor=('center', 'center'))
                 bullet.images = ['bullet-1', 'bullet-2', 'bullet-3']
                 bullet.angle = self.player.angle
@@ -200,22 +185,40 @@ class BattleBugs:
                 except Exception:
                     pass
 
-            if len(self.bugs) > 0 and (keyboard.left or keyboard.right or keyboard.up or keyboard.down or keyboard.space):
-                bug = random.choice(self.bugs)
-
-                # Calcula o vetor do bug até o player e obtém um ângulo que
-                # segue a mesma convenção do jogador (0 = cima, aumenta CCW).
-                vx = self.player.x - bug.x
-                vy = self.player.y - bug.y
-                angle = math.degrees(math.atan2(-vx, -vy)) % 360
-
-                animate(bug, angle=angle, duration=0.1, tween='linear')
-                # Move o bug um passo para frente nessa direção
-                self.next_board(bug, animate, True)
-
     def update(self, dt, keyboard, animate):
         if self.state != 'game':
             return
+
+        if keyboard.left or keyboard.right or keyboard.up or keyboard.down:
+            # use o valor acumulado do ângulo para permitir giros completos (>360)
+            curr = self.player.angle
+
+            new_angle = curr
+
+            # right or left fica girando (agora em incrementos de 35°)
+            if keyboard.right or keyboard.left:
+                if keyboard.right:
+                    new_angle = curr - 35
+                elif keyboard.left:
+                    new_angle = curr + 35
+
+                animate(self.player, angle=new_angle, duration=0.1, tween='linear')
+
+            elif keyboard.up or keyboard.down:
+                self.next_board(self.player, animate, keyboard.up == True)
+
+        if len(self.bugs) > 0 and (keyboard.left or keyboard.right or keyboard.up or keyboard.down or keyboard.space):
+            bug = random.choice(self.bugs)
+
+            # Calcula o vetor do bug até o player e obtém um ângulo que
+            # segue a mesma convenção do jogador (0 = cima, aumenta CCW).
+            vx = self.player.x - bug.x
+            vy = self.player.y - bug.y
+            angle = math.degrees(math.atan2(-vx, -vy)) % 360
+
+            animate(bug, angle=angle, duration=0.1, tween='linear')
+            # Move o bug um passo para frente nessa direção
+            self.next_board(bug, animate, True)
 
         for bullet in self.bullets:
             self.next_board(bullet, animate, True, True)
