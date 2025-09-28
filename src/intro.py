@@ -1,4 +1,4 @@
-import sys
+﻿import sys
 import pgzrun
 import math
 import random
@@ -15,22 +15,15 @@ class BattleBugs:
         self.som = True
         self.som_playing = False
 
+        self.bugs = []
+        self.bullets = []
+
         self.board: Actor
         self.player: Actor
 
-        self.reset()
-        self.start()
-
-    def reset(self):
-        self.boardsSelecteds = []
-        self.bugs = []
-        self.bullets = []
-        self.objects = []
-        self.state = 'intro'  # intro, start, gameover
         self.bug_image: Actor
         self.player_image: Actor
 
-    def start(self):
         self.bug_image = Actor('bug-1', anchor=('center', 'center'))
         self.bug_image.images = ['bug-1', 'bug-2', 'bug-3', 'bug-4']
         self.bug_image.x = 400
@@ -49,6 +42,15 @@ class BattleBugs:
         self.player.images = ['player-1', 'player-2', 'player-3', 'player-4']
         self.player.angle = 0
 
+        self.reset()
+        self.start()
+
+    def reset(self):
+        self.bugs.clear()
+        self.bullets.clear()
+        self.state = 'intro'  # intro, start, gameover
+
+    def start(self):
         self.play_theme()
 
     def play_theme(self):
@@ -73,7 +75,7 @@ class BattleBugs:
             pass
 
     def players(self):
-        self.bugs = []
+        self.bugs.clear()
         for _ in range(5):
             bug = Actor('bug-1', anchor=('center', 'center'))
             bug.images = ['bug-1', 'bug-2', 'bug-3', 'bug-4']
