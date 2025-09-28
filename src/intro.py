@@ -46,9 +46,12 @@ class BattleBugs:
         self.start()
 
     def reset(self):
+        self.clear()
+        self.state = 'intro'  # intro, start, gameover
+
+    def clear(self):
         self.bugs.clear()
         self.bullets.clear()
-        self.state = 'intro'  # intro, start, gameover
 
     def start(self):
         self.play_theme()
@@ -204,7 +207,14 @@ class BattleBugs:
                 sys.exit()
 
         elif self.state == 'game' or self.state == 'gameover':
+            if keyboard.RETURN:
+                # inicia o jogo
+                self.state = 'game'
+                self.players()
+                return
+            
             if keyboard.Escape:
+                # volta ao intro
                 self.state = 'intro'
                 self.reset()
                 self.start()
@@ -262,8 +272,8 @@ class BattleBugs:
             self.next_board(bug, animate, rotate=True, new_angle=angle)
             # Move o bug um passo para frente nessa direção
             self.next_board(bug, animate, forward=True)
-
-            if random.random() < 0.1 and keyboard.space:  # 10% de chance de atirar se o jogador atirar
+    
+            if random.random() < 0.01 and keyboard.space:  # 1% de chance de atirar se o jogador atirar
                 bullet = Actor('bullet-1', anchor=('center', 'center'))
                 bullet.images = ['bullet-1', 'bullet-2', 'bullet-3']
                 bullet.angle = bug.angle
@@ -312,14 +322,17 @@ class BattleBugs:
 
             if len(self.bugs) == 0:
                 screen.draw.text('Parabéns! Você venceu!', center=(400, 250), color='white', fontsize=40)
-                screen.draw.text('Tecle Esc para reiniciar', center=(400, 300), color='white', fontsize=40)
+                screen.draw.text('Tecle Enter para reiniciar', center=(400, 300), color='white', fontsize=40)
+                screen.draw.text('Tecle Esc para ir ao menu', center=(400, 350), color='white', fontsize=40)
+                self.clear()
+            elif self.state == 'gameover':
+                screen.draw.text('Game Over! Você foi atingido!', center=(400, 250), color='white', fontsize=40)
+                screen.draw.text('Tecle Enter para reiniciar', center=(400, 300), color='white', fontsize=40)
+                screen.draw.text('Tecle Esc para ir ao menu', center=(400, 350), color='white', fontsize=40)
 
             if len(self.bugs) > 0:
                 screen.draw.text(f'Bugs restantes: {len(self.bugs)}', topright=(790, 10), color='white', fontsize=30)
 
-            if self.state == 'gameover':
-                screen.draw.text('Game Over! Você foi atingido!', center=(400, 250), color='white', fontsize=40)
-                screen.draw.text('Tecle Esc para reiniciar', center=(400, 300), color='white', fontsize=40)
 
 # Inicializa o jogo
 battleBugs = BattleBugs()
