@@ -149,11 +149,6 @@ class BattleBugs:
         return out_of_bounds
 
     def bullet_collide(self, bullet, bug=None, player=None):
-        if bullet in self.bullets:
-            self.bullets.remove(bullet)
-        if bug and bug in self.bugs:
-            self.bugs.remove(bug)
-
         # Som de explosão quando um bug é acertado
         try:
             if self.som:
@@ -166,6 +161,11 @@ class BattleBugs:
 
         if player:
             self.state = 'gameover'
+        else:
+            if bullet in self.bullets:
+                self.bullets.remove(bullet)
+            if bug and bug in self.bugs:
+                self.bugs.remove(bug)
 
     def out_of_bounds(self, x, y, by = 0, bx = 0, w = 800, h = 600):
         if x < 0 + bx or x > w - bx or y < 50 + by or y > h - by:
