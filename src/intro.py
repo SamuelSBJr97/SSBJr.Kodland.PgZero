@@ -90,10 +90,20 @@ class BattleBugs:
         # passa referencia dos objetos para facilitar o draw/update
         self.objects = [self.board, *self.bugs, self.player]
 
-    def next_board(self, actor, animate, forward=True, bullet=False):
+    def next_board(self, actor, animate, forward=True, rotate=False, new_angle=0.0, bullet=False):
+
+        if rotate:
+            # gira o ator 35 graus na direção desejada
+            animate(actor, angle=new_angle, duration=0.1, tween='linear')
+            return False
+        
         x = actor.x
         y = actor.y
+
         step = 50
+
+        if bullet:
+            step = 100
 
         # Calcula deslocamento baseado no ângulo do ator.
         # Convenção: angle=0 => cima; angle aumenta no sentido anti-horário.
@@ -111,11 +121,14 @@ class BattleBugs:
 
         out_of_bounds = self.out_of_bounds(new_x, new_y)
 
-        # anima para a nova posição calculada
-        if not out_of_bounds:
-            animate(actor, pos=(new_x, new_y), duration=0.1, tween='linear')
+        if bullet:
+            if not out_of_bounds:
+                animate(actor, pos=(new_x, new_y), duration=0.1, tween='linear')
 
-        if not bullet:
+        elif not bullet:
+            if not out_of_bounds:
+                animate(actor, pos=(new_x, new_y), duration=0.1, tween='linear')
+
             # Som de movimento (nota curta) — respeita self.som quando actor for player ou bug
             try:
                 if self.som:
@@ -175,8 +188,6 @@ class BattleBugs:
                 self.objects.append(bullet)
                 self.bullets.append(bullet)
 
-                self.next_board(bullet, animate, True, True)
-
                 # Som de disparo — respeita self.som
                 try:
                     if self.som:
@@ -202,10 +213,10 @@ class BattleBugs:
                 elif keyboard.left:
                     new_angle = curr + 35
 
-                animate(self.player, angle=new_angle, duration=0.1, tween='linear')
+                self.next_board(self.player, animate, rotate=True, new_angle=new_angle)
 
             elif keyboard.up or keyboard.down:
-                self.next_board(self.player, animate, keyboard.up == True)
+                self.next_board(self.player, animate, forward=keyboard.up == True)
 
         if len(self.bugs) > 0 and (keyboard.left or keyboard.right or keyboard.up or keyboard.down or keyboard.space):
             bug = random.choice(self.bugs)
@@ -216,12 +227,12 @@ class BattleBugs:
             vy = self.player.y - bug.y
             angle = math.degrees(math.atan2(-vx, -vy)) % 360
 
-            animate(bug, angle=angle, duration=0.1, tween='linear')
+            self.next_board(bug, animate, rotate=True, new_angle=angle)
             # Move o bug um passo para frente nessa direção
-            self.next_board(bug, animate, True)
+            self.next_board(bug, animate, forward=True)
 
         for bullet in self.bullets:
-            self.next_board(bullet, animate, True, True)
+            out_of_bounds = self.next_board(bullet, animate, forward=True, bullet=True)
             hasHit = False
             for bug in self.bugs:
                 if bullet.colliderect(bug):
@@ -230,7 +241,7 @@ class BattleBugs:
                     self.bugs.remove(bug)
                     break
 
-            if hasHit:
+            if hasHit or out_of_bounds:
                 self.objects.remove(bullet)
                 self.bullets.remove(bullet)
                 # Som de explosão quando um bug é acertado
