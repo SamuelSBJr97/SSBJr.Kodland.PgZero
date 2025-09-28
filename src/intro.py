@@ -15,16 +15,17 @@ class BattleBugs:
         self.som = True
         self.som_playing = False
 
+        self.board: Actor
+        self.player: Actor
+
         self.reset()
         self.start()
 
     def reset(self):
-        self.board: Actor
         self.boardsSelecteds = []
         self.bugs = []
         self.bullets = []
         self.objects = []
-        self.player: Actor
         self.state = 'intro'  # intro, start, gameover
         self.bug_image: Actor
         self.player_image: Actor
@@ -44,7 +45,9 @@ class BattleBugs:
         self.board.x = 400
         self.board.y = 325
 
-        self.objects = [self.board]
+        self.player = Actor("player-1", anchor=('center', 'center'))
+        self.player.images = ['player-1', 'player-2', 'player-3', 'player-4']
+        self.player.angle = 0
 
         self.play_theme()
 
@@ -80,15 +83,8 @@ class BattleBugs:
             bug.y = random.randint(1, 9) * 50 + 50
             self.bugs.append(bug)
 
-        self.player = Actor("player-1", anchor=('center', 'center'))
-        self.player.images = ['player-1', 'player-2', 'player-3', 'player-4']
-        self.player.angle = 0
-
         self.player.x = random.randint(1, 7) * 50
         self.player.y = random.randint(1, 9) * 50 + 50
-
-        # passa referencia dos objetos para facilitar o draw/update
-        self.objects = [self.board, *self.bugs, self.player]
 
     def next_board(self, actor, animate, forward=True, rotate=False, new_angle=0.0, bullet=False):
 
@@ -122,8 +118,22 @@ class BattleBugs:
         out_of_bounds = self.out_of_bounds(new_x, new_y)
 
         if bullet:
-            if not out_of_bounds:
-                animate(actor, pos=(new_x, new_y), duration=0.1, tween='linear')
+            has_hit = None
+
+            # se sair dos limites, remove a bala
+            animate(actor, pos=(new_x, new_y), duration=0.1, tween='linear', on_finished=lambda: self.bullet_collide(actor, bug=has_hit) if out_of_bounds else None)
+            
+            if actor.shooter == 'player':
+                for bug in self.bugs:
+                    if bug.colliderect(actor):
+                        has_hit = bug
+                        break
+            elif actor.shooter == 'bug':
+                if self.player.colliderect(actor):
+                    has_hit = self.player
+
+            if has_hit:
+                self.bullet_collide(actor, bug=has_hit, player=self.player if has_hit == self.player else None)
 
         elif not bullet:
             if not out_of_bounds:
@@ -137,6 +147,25 @@ class BattleBugs:
                 pass
 
         return out_of_bounds
+
+    def bullet_collide(self, bullet, bug=None, player=None):
+        if bullet in self.bullets:
+            self.bullets.remove(bullet)
+        if bug and bug in self.bugs:
+            self.bugs.remove(bug)
+
+        # Som de explosão quando um bug é acertado
+        try:
+            if self.som:
+                # explosão mais grave e longa
+                tone.play('C2', 0.20)
+                # nota de ressonância após 0.12s (grave)
+                tone.play('G2', 0.14)
+        except Exception:
+            pass
+
+        if player:
+            self.state = 'gameover'
 
     def out_of_bounds(self, x, y, by = 0, bx = 0, w = 800, h = 600):
         if x < 0 + bx or x > w - bx or y < 50 + by or y > h - by:
@@ -172,29 +201,30 @@ class BattleBugs:
                 # encerra o jogo
                 sys.exit()
 
-        elif self.state == 'game':
+        elif self.state == 'game' or self.state == 'gameover':
             if keyboard.Escape:
                 self.state = 'intro'
                 self.reset()
                 self.start()
                 return
             
-            if keyboard.space:
-                bullet = Actor('bullet-1', anchor=('center', 'center'))
-                bullet.images = ['bullet-1', 'bullet-2', 'bullet-3']
-                bullet.angle = self.player.angle
-                bullet.x = self.player.x
-                bullet.y = self.player.y
-                self.objects.append(bullet)
-                self.bullets.append(bullet)
+            if self.state == 'game':
+                if keyboard.space:
+                    bullet = Actor('bullet-1', anchor=('center', 'center'))
+                    bullet.images = ['bullet-1', 'bullet-2', 'bullet-3']
+                    bullet.angle = self.player.angle
+                    bullet.x = self.player.x
+                    bullet.y = self.player.y
+                    bullet.shooter = 'player'
+                    self.bullets.append(bullet)
 
-                # Som de disparo — respeita self.som
-                try:
-                    if self.som:
-                        # som de disparo mais grave
-                        tone.play('F#4', 0.08)
-                except Exception:
-                    pass
+                    # Som de disparo — respeita self.som
+                    try:
+                        if self.som:
+                            # som de disparo mais grave
+                            tone.play('F#4', 0.08)
+                    except Exception:
+                        pass
 
     def update(self, dt, keyboard, animate):
         if self.state != 'game':
@@ -231,37 +261,34 @@ class BattleBugs:
             # Move o bug um passo para frente nessa direção
             self.next_board(bug, animate, forward=True)
 
-        for bullet in self.bullets:
-            out_of_bounds = self.next_board(bullet, animate, forward=True, bullet=True)
-            hasHit = False
-            for bug in self.bugs:
-                if bullet.colliderect(bug):
-                    hasHit = True
-                    self.objects.remove(bug)
-                    self.bugs.remove(bug)
-                    break
+            if random.random() < 0.05:  # 5% de chance de atirar
+                bullet = Actor('bullet-1', anchor=('center', 'center'))
+                bullet.images = ['bullet-1', 'bullet-2', 'bullet-3']
+                bullet.angle = bug.angle
+                bullet.x = bug.x
+                bullet.y = bug.y
+                bullet.shooter = 'bug'
+                self.bullets.append(bullet)
 
-            if hasHit or out_of_bounds:
-                self.objects.remove(bullet)
-                self.bullets.remove(bullet)
-                # Som de explosão quando um bug é acertado
+                # Som de disparo do bug — respeita self.som
                 try:
-                    if hasHit and self.som:
-                        # explosão mais grave e longa
-                        tone.play('C2', 0.20)
-                        # nota de ressonância após 0.12s (grave)
-                        tone.play('G2', 0.14)
+                    if self.som:
+                        # som de disparo mais agudo para o bug
+                        tone.play('A4', 0.08)
                 except Exception:
                     pass
+
+        for bullet in self.bullets:
+            self.next_board(bullet, animate, forward=True, bullet=True)
 
     def draw(self, screen, keyboard, animate):
         screen.clear()
 
-        for obj in self.objects:
-            self.actor_anime(obj)
-            obj.draw()
-
         if self.state == 'intro':
+            for obj in [self.board]:
+                self.actor_anime(obj)
+                obj.draw()
+
             screen.draw.text('Bem-vindo ao Battle Bugs!', center=(400, 50), color='white', fontsize=40)
             # adicione os controles e objetivos do jogo aqui
             screen.draw.text('Use as setas para mover e a barra de espaço para atirar', center=(400, 100), color='white', fontsize=40)
@@ -275,11 +302,22 @@ class BattleBugs:
             screen.draw.text('Tecle Enter para iniciar', center=(400, 350), color='white', fontsize=40)
             screen.draw.text(f'Som {"ativado" if self.som else "desativado"}. Tecle M para {"desativar" if self.som else "ativar"}', center=(400, 400), color='white', fontsize=40) # texto formatado de acordo com o estado do som
             screen.draw.text('Tecle Esc para encerrar', center=(400, 450), color='white', fontsize=40)
-        if self.state == 'game' and len(self.bugs) == 0:
-            screen.draw.text('Parabéns! Você venceu!', center=(400, 250), color='white', fontsize=40)
-            screen.draw.text('Tecle Esc para reiniciar', center=(400, 300), color='white', fontsize=40)
-        if self.state == 'game' and len(self.bugs) > 0:
-            screen.draw.text(f'Bugs restantes: {len(self.bugs)}', topright=(790, 10), color='white', fontsize=30)
+
+        if self.state == 'game' or self.state == 'gameover':
+            for obj in [self.board, self.player, *self.bugs, *self.bullets]:
+                self.actor_anime(obj)
+                obj.draw()
+
+            if len(self.bugs) == 0:
+                screen.draw.text('Parabéns! Você venceu!', center=(400, 250), color='white', fontsize=40)
+                screen.draw.text('Tecle Esc para reiniciar', center=(400, 300), color='white', fontsize=40)
+
+            if len(self.bugs) > 0:
+                screen.draw.text(f'Bugs restantes: {len(self.bugs)}', topright=(790, 10), color='white', fontsize=30)
+
+            if self.state == 'gameover':
+                screen.draw.text('Game Over! Você foi atingido!', center=(400, 250), color='white', fontsize=40)
+                screen.draw.text('Tecle Esc para reiniciar', center=(400, 300), color='white', fontsize=40)
 
 # Inicializa o jogo
 battleBugs = BattleBugs()
